@@ -1,6 +1,6 @@
 streamlit
-numpy
-plotly
-fpdf
-kaleido
 joblib
+scikit-learn
+pandas
+numpy
+matplotlib
