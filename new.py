@@ -24,6 +24,8 @@ if "model_used" not in st.session_state:
     st.session_state.model_used = list(models.keys())[0]
 if "cl_pred" not in st.session_state:
     st.session_state.cl_pred = 0.0
+if "airspeed" not in st.session_state:
+    st.session_state.airspeed = 0.0
 
 # --- Tabs ---
 tab1, tab2, tab3 = st.tabs(["🔍 Predict Cl", "📊 Visualize 3D Plot", "📐 Measurement & Report"])
@@ -47,9 +49,26 @@ with tab1:
         if cl_pred > 1.5:
             st.warning("⚠️ High Cl — possible near-stall condition.")
 
-        # Save values for later use
         st.session_state.cl_pred = cl_pred
         st.session_state.model_used = selected_model_name
+
+        st.subheader("✈️ Optional: Estimate Required Speed")
+        rho = st.number_input("Air Density (kg/m³)", min_value=0.5, max_value=1.5, value=1.225, step=0.01)
+        S = st.number_input("Wing Area (m²)", min_value=1.0, max_value=100.0, value=10.0, step=1.0)
+        L = st.number_input("Lift Force Required (Newtons)", min_value=500.0, max_value=50000.0, value=9800.0, step=100.0)
+
+        try:
+            V = (2 * L / (rho * S * cl_pred)) ** 0.5
+            st.session_state.airspeed = V
+            st.info(f"💨 Estimated Required Airspeed: **{V:.2f} m/s**")
+
+            if V < 20:
+                st.warning("⚠️ Very low speed — may result in insufficient lift. Consider increasing wing area or airspeed.")
+            elif V > 100:
+                st.warning("⚠️ Very high speed — structural integrity may be at risk. Consider reducing AoA or camber.")
+
+        except ZeroDivisionError:
+            st.error("Cannot compute speed — Cl must be greater than 0.")
 
 # --- Tab 2: 3D Plot ---
 with tab2:
@@ -84,7 +103,6 @@ with tab2:
             "re": st.session_state.re
         }
 
-        # Try saving the plot image
         try:
             fig.write_image("3d_plot.png")
             st.session_state.plot_image_path = "3d_plot.png"
@@ -97,11 +115,12 @@ with tab3:
 
     if "last_inputs" in st.session_state:
         inputs = st.session_state.last_inputs
-        st.markdown(f"**Camber**: {inputs['camber']}  ")
-        st.markdown(f"**Thickness**: {inputs['thickness']}  ")
-        st.markdown(f"**AoA**: {inputs['aoa']}°  ")
-        st.markdown(f"**Reynolds Number**: {inputs['re']:.0f}  ")
+        st.markdown(f"**Camber**: {inputs['camber']}")
+        st.markdown(f"**Thickness**: {inputs['thickness']}")
+        st.markdown(f"**AoA**: {inputs['aoa']}°")
+        st.markdown(f"**Reynolds Number**: {inputs['re']:.0f}")
         st.markdown(f"**Predicted Cl**: {st.session_state.cl_pred:.3f}")
+        st.markdown(f"**Estimated Speed**: {st.session_state.airspeed:.2f} m/s")
 
         uploaded_image = st.file_uploader("📷 Optionally upload an airfoil reference image", type=["png", "jpg", "jpeg"])
 
@@ -117,7 +136,13 @@ with tab3:
                 pdf.cell(200, 10, txt=f"{k.title()}: {v}", ln=True)
 
             pdf.cell(200, 10, txt=f"Predicted Cl: {st.session_state.cl_pred:.3f}", ln=True)
+            pdf.cell(200, 10, txt=f"Estimated Speed: {st.session_state.airspeed:.2f} m/s", ln=True)
             pdf.cell(200, 10, txt=f"Model Used: {st.session_state.model_used}", ln=True)
+
+            if st.session_state.airspeed < 20:
+                pdf.cell(200, 10, txt="⚠️ Warning: Speed too low. Consider increasing wing area or camber.", ln=True)
+            elif st.session_state.airspeed > 100:
+                pdf.cell(200, 10, txt="⚠️ Warning: Speed too high. Reduce AoA or camber for safety.", ln=True)
 
             if "plot_image_path" in st.session_state and os.path.exists(st.session_state.plot_image_path):
                 pdf.image(st.session_state.plot_image_path, x=10, y=None, w=180)
@@ -139,4 +164,4 @@ with tab3:
 
 # --- Footer ---
 st.markdown("---")
-st.caption("Made with❤️ by Jack Muthui · July 2025 · Powered by Streamlit & scikit-learn")
+st.caption("Made with ❤️ by Jack Muthui · July 2025 · Powered by Streamlit & scikit-learn")
