@@ -1,6 +1,7 @@
 streamlit
 joblib
 scikit-learn
-pandas
+plotly
 numpy
-matplotlib
+fpdf
+kaleido
