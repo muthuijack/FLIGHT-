@@ -1,6 +1,6 @@
 streamlit
-joblib
 numpy
 plotly
 fpdf
 kaleido
+joblib
