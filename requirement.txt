@@ -1,5 +1,5 @@
-joblib
 streamlit
+joblib
 scikit-learn
 plotly
 numpy
